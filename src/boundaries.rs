@@ -1,5 +1,5 @@
-extern crate osmpbfreader;
 extern crate geo;
+extern crate osmpbfreader;
 
 use std::collections::BTreeMap;
 use geo::{Coordinate, LineString, MultiPolygon, Point, Polygon};
