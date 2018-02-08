@@ -16,3 +16,6 @@ It also provides as osm_builder utility to create osm datasets, mainly to write 
 This crate is not yet on crates.io, for the moment you need to put 
 `osm_boundaries_utils = { git = "https://github.com/QwantResearch/osm_boundaries_utils_rs" }`
 in your own Cargo.toml to use it.
+
+# Licence
+This work is free. You can redistribute it and/or modify it under the terms of the Do What The Fuck You Want To Public License, Version 2, as published by Sam Hocevar. See the COPYING file for more details.
