@@ -1,0 +1,9 @@
+[package]
+name = "osm_boundaries_utils"
+version = "0.1.0"
+authors = ["dt.ro <dt.ro@canaltp.fr>"]
+
+[dependencies]
+log = "0.4"
+osmpbfreader = "0.11"
+geo = "0.4.7"
