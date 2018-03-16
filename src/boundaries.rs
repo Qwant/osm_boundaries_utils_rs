@@ -381,3 +381,36 @@ fn test_build_two_boundary_closed() {
         assert!(false); //this should not happen
     }
 }
+
+#[test]
+fn test_build_one_donut_boundary_closed() {
+    use geo::algorithm::area::Area;
+    let mut builder = osm_builder::OsmBuilder::new();
+    let rel_id = builder
+        .relation()
+        .outer(vec![
+            named_node(0.0, 0.0, "start"),
+            named_node(4.0, 0.0, "1"),
+            named_node(4.0, 4.0, "2"),
+            named_node(0.0, 4.0, "3"),
+            named_node(0.0, 0.0, "start"),
+        ])
+        .inner(vec![
+            named_node(1.0, 1.0, "other_start"),
+            named_node(2.0, 1.0, "11"),
+            named_node(2.0, 2.0, "12"),
+            named_node(1.0, 2.0, "13"),
+            named_node(1.0, 1.0, "other_start"),
+        ])
+        .relation_id
+        .into();
+    if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
+        let multipolygon = build_boundary(&relation, &builder.objects);
+        assert!(multipolygon.is_some());
+        let multipolygon = multipolygon.unwrap();
+        //assert_eq!(multipolygon.0.len(), 2);
+        assert_eq!(multipolygon.area(), 15.);
+    } else {
+        assert!(false); //this should not happen
+    }
+}

@@ -28,6 +28,23 @@ impl<'a> Relation<'a> {
     }
 }
 
+impl<'a> Relation<'a> {
+    pub fn inner(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation {
+        let id = self.builder.way(coords);
+        if let &mut osmpbfreader::OsmObj::Relation(ref mut rel) = self.builder
+            .objects
+            .get_mut(&self.relation_id.into())
+            .unwrap()
+        {
+            rel.refs.push(osmpbfreader::Ref {
+                role: "inner".to_string(),
+                member: id.into(),
+            });
+        }
+        self
+    }
+}
+
 pub struct OsmBuilder {
     node_id: i64,
     way_id: i64,
