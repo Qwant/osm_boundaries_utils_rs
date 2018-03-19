@@ -6,4 +6,4 @@ authors = ["dt.ro <dt.ro@canaltp.fr>"]
 [dependencies]
 log = "0.4"
 osmpbfreader = "0.11"
-geo = "0.7.4"
+geo = "0.6"
