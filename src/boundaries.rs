@@ -104,45 +104,23 @@ pub fn build_boundary(
 ) -> Option<MultiPolygon<f64>> {
     use geo::algorithm::contains::Contains;
 
-    let outer_polys = build_boundary_parts(relation, objects, vec!["outer", "enclave", ""]);
+    let mut outer_polys = build_boundary_parts(relation, objects, vec!["outer", "enclave", ""]);
     let inner_polys = build_boundary_parts(relation, objects, vec!["inner"]);
-    let mut multipoly = MultiPolygon(vec![]);
 
-    if inner_polys.is_none() {
-        return outer_polys;
+    if let Some(ref mut outers) = outer_polys {
+        inner_polys.map(|inners| {
+            inners.into_iter().for_each(|inner| {
+                for ref mut outer in outers.0.iter_mut() {
+                    if outer.contains(&inner) {
+                        outer.interiors.push(inner.exterior);
+                        break;
+                        // NB: this algorithm cannot handle "donut inside donut" boundaries
+                    }
+                }
+            })
+        });
     }
-    let mut inner_polys = inner_polys.unwrap();
-
-    if outer_polys.is_some() {
-        let outer_polys = outer_polys.unwrap();
-        for outer in outer_polys.0 {
-            let mut added_outer = false;
-            let mut i = 0;
-            let mut inners = vec![];
-            while i != inner_polys.0.len() {
-                let current_inner = inner_polys.0.get(i).unwrap().clone();
-                if outer.contains(&current_inner) {
-                    inner_polys.0.remove(i);
-                    inners.push(current_inner.exterior);
-                    added_outer = true;
-                } else {
-                    i += 1;
-                };
-            }
-            if !added_outer {
-                multipoly.0.push(outer.clone());
-            } else {
-                multipoly
-                    .0
-                    .push(Polygon::new(outer.exterior.clone(), inners));
-            }
-        }
-    }
-    if multipoly.0.is_empty() {
-        None
-    } else {
-        Some(multipoly)
-    }
+    outer_polys
 }
 
 pub fn build_boundary_parts(
@@ -353,7 +331,7 @@ fn test_build_one_boundary_closed() {
             named_node(3.4, 5.2, "start"),
             named_node(5.4, 5.1, "1"),
             named_node(2.4, 3.1, "2"),
-            named_node(6.4, 6.1, "start"),
+            named_node(3.4, 5.2, "start"),
         ])
         .relation_id
         .into();
@@ -418,7 +396,7 @@ fn test_build_two_boundaries_closed() {
             named_node(13.4, 15.2, "1start"),
             named_node(15.4, 15.1, "11"),
             named_node(12.4, 13.1, "12"),
-            named_node(16.4, 16.1, "1start"),
+            named_node(13.4, 15.2, "1start"),
         ])
         .relation_id
         .into();
@@ -490,7 +468,7 @@ fn test_build_two_boundaries_with_one_hole() {
             named_node(8.0, 4.0, "4"),
             named_node(8.0, 8.0, "5"),
             named_node(4.0, 8.0, "6"),
-            named_node(0.0, 0.0, "yet_another_start"),
+            named_node(4.0, 4.0, "yet_another_start"),
         ])
         .relation_id
         .into();
@@ -513,9 +491,9 @@ fn test_build_one_boundary_with_two_holes() {
         .relation()
         .outer(vec![
             named_node(0.0, 0.0, "start"),
-            named_node(4.0, 0.0, "1"),
-            named_node(4.0, 4.0, "2"),
-            named_node(0.0, 4.0, "3"),
+            named_node(5.0, 0.0, "1"),
+            named_node(5.0, 5.0, "2"),
+            named_node(0.0, 5.0, "3"),
             named_node(0.0, 0.0, "start"),
         ])
         .inner(vec![
@@ -526,11 +504,11 @@ fn test_build_one_boundary_with_two_holes() {
             named_node(1.0, 1.0, "other_start"),
         ])
         .inner(vec![
-            named_node(2.0, 2.0, "yet_another_start"),
-            named_node(3.0, 2.0, "4"),
-            named_node(3.0, 3.0, "5"),
-            named_node(2.0, 3.0, "6"),
-            named_node(2.0, 2.0, "yet_another_start"),
+            named_node(3.0, 3.0, "yet_another_start"),
+            named_node(4.0, 3.0, "4"),
+            named_node(4.0, 4.0, "5"),
+            named_node(3.0, 4.0, "6"),
+            named_node(3.0, 3.0, "yet_another_start"),
         ])
         .relation_id
         .into();
@@ -539,7 +517,7 @@ fn test_build_one_boundary_with_two_holes() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.area(), 14.);
+        assert_eq!(multipolygon.area(), 23.);
     } else {
         assert!(false); //this should not happen
     }
@@ -567,18 +545,18 @@ fn test_build_two_boundaries_with_two_holes() {
             named_node(1.0, 1.0, "other_start"),
         ])
         .inner(vec![
-            named_node(2.0, 2.0, "another_start"),
-            named_node(3.0, 2.0, "4"),
-            named_node(3.0, 3.0, "5"),
-            named_node(2.0, 3.0, "6"),
-            named_node(2.0, 2.0, "another_start"),
+            named_node(2.1, 2.1, "another_start"),
+            named_node(3.1, 2.1, "4"),
+            named_node(3.1, 3.1, "5"),
+            named_node(2.1, 3.1, "6"),
+            named_node(2.1, 2.1, "another_start"),
         ])
         .outer(vec![
             named_node(4.0, 4.0, "yet_another_start"),
             named_node(8.0, 4.0, "14"),
             named_node(8.0, 8.0, "15"),
             named_node(4.0, 8.0, "16"),
-            named_node(0.0, 0.0, "yet_another_start"),
+            named_node(4.0, 4.0, "yet_another_start"),
         ])
         .relation_id
         .into();
