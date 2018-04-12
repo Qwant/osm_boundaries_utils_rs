@@ -1,13 +1,13 @@
 extern crate geo;
 extern crate osmpbfreader;
 
-use std::collections::BTreeMap;
 use geo::{Coordinate, LineString, MultiPolygon, Point, Polygon};
+use std::collections::BTreeMap;
 
 #[cfg(test)]
-use osm_builder::named_node;
-#[cfg(test)]
 use osm_builder;
+#[cfg(test)]
+use osm_builder::named_node;
 
 struct BoundaryPart {
     nodes: Vec<osmpbfreader::Node>,

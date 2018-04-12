@@ -3,7 +3,7 @@ extern crate geo;
 extern crate log;
 extern crate osmpbfreader;
 
-pub mod osm_builder;
 mod boundaries;
+pub mod osm_builder;
 
 pub use boundaries::build_boundary;
