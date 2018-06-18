@@ -585,6 +585,12 @@ fn test_build_two_boundaries_with_two_holes() {
 fn test_build_inner_touching_outer_at_one_point() {
     use geo::algorithm::area::Area;
     let mut builder = osm_builder::OsmBuilder::new();
+
+    /*
+        A single polygon with an inner square touching at a single point.
+        Inspired from the first 'valid' figure on
+        https://shapely.readthedocs.io/en/latest/manual.html#Polygon
+    */
     let rel_id = builder
         .relation()
         .outer(vec![
