@@ -37,7 +37,8 @@ fn get_nodes(
             } else {
                 None
             }
-        }).collect()
+        })
+        .collect()
 }
 
 #[test]
@@ -115,7 +116,7 @@ pub fn build_boundary(
                     point with (i.e 'intersects') all 'inner' segments.
                     Using 'contains' is not suitable here, as 'inner' may touch its outer
                     ring at a single point.
-
+                
                     NB: this algorithm cannot handle "donut inside donut" boundaries
                     (where 'inner' would be contained into multiple concentric outer rings).
                 */
@@ -150,7 +151,8 @@ pub fn build_boundary_parts(
                 );
             }
             obj
-        }).filter_map(|way_obj| way_obj.way())
+        })
+        .filter_map(|way_obj| way_obj.way())
         .map(|way| get_nodes(way, objects))
         .filter(|nodes| nodes.len() > 1)
         .map(BoundaryPart::new)
@@ -194,7 +196,8 @@ pub fn build_boundary_parts(
                     .map(|n| Coordinate {
                         x: n.lon(),
                         y: n.lat(),
-                    }).collect();
+                    })
+                    .collect();
                 multipoly
                     .0
                     .push(Polygon::new(LineString(poly_geom), vec![]));
@@ -262,7 +265,8 @@ fn test_build_boundary_not_closed() {
         .outer(vec![
             named_node(3.4, 5.2, "start"),
             named_node(5.4, 5.1, "1"),
-        ]).outer(vec![named_node(5.4, 5.1, "1"), named_node(2.4, 3.1, "2")])
+        ])
+        .outer(vec![named_node(5.4, 5.1, "1"), named_node(2.4, 3.1, "2")])
         .outer(vec![named_node(2.4, 3.2, "2"), named_node(6.4, 6.1, "end")])
         .relation_id
         .into();
@@ -281,11 +285,13 @@ fn test_build_boundary_closed() {
         .outer(vec![
             named_node(3.4, 5.2, "start"),
             named_node(5.4, 5.1, "1"),
-        ]).outer(vec![named_node(5.4, 5.1, "1"), named_node(2.4, 3.1, "2")])
+        ])
+        .outer(vec![named_node(5.4, 5.1, "1"), named_node(2.4, 3.1, "2")])
         .outer(vec![
             named_node(2.4, 3.2, "2"),
             named_node(6.4, 6.1, "start"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
@@ -305,11 +311,13 @@ fn test_build_boundary_closed_reverse() {
         .outer(vec![
             named_node(2.4, 3.2, "2"),
             named_node(6.4, 6.1, "start"),
-        ]).outer(vec![named_node(5.4, 5.1, "1"), named_node(2.4, 3.1, "2")])
+        ])
+        .outer(vec![named_node(5.4, 5.1, "1"), named_node(2.4, 3.1, "2")])
         .outer(vec![
             named_node(3.4, 5.2, "start"),
             named_node(5.4, 5.1, "1"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
@@ -331,7 +339,8 @@ fn test_build_one_boundary_closed() {
             named_node(5.4, 5.1, "1"),
             named_node(2.4, 3.1, "2"),
             named_node(3.4, 5.2, "start"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
@@ -355,13 +364,15 @@ fn test_build_two_opposite_clockwise_boundaries() {
             named_node(1.0, 1.0, "2"),
             named_node(1.0, 0.0, "3"),
             named_node(0.0, 0.0, "start"),
-        ]).outer(vec![
+        ])
+        .outer(vec![
             named_node(0.0, 0.0, "another_start"), // clockwise polygon
             named_node(0.0, -1.0, "4"),
             named_node(-1.0, -1.0, "5"),
             named_node(-1.0, 0.0, "6"),
             named_node(0.0, 0.0, "another_start"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
@@ -387,12 +398,14 @@ fn test_build_two_boundaries_closed() {
             named_node(5.4, 5.1, "1"),
             named_node(2.4, 3.1, "2"),
             named_node(6.4, 6.1, "start"),
-        ]).outer(vec![
+        ])
+        .outer(vec![
             named_node(13.4, 15.2, "1start"),
             named_node(15.4, 15.1, "11"),
             named_node(12.4, 13.1, "12"),
             named_node(13.4, 15.2, "1start"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
@@ -416,13 +429,15 @@ fn test_build_one_donut_boundary() {
             named_node(4.0, 4.0, "2"),
             named_node(0.0, 4.0, "3"),
             named_node(0.0, 0.0, "start"),
-        ]).inner(vec![
+        ])
+        .inner(vec![
             named_node(1.0, 1.0, "other_start"),
             named_node(2.0, 1.0, "11"),
             named_node(2.0, 2.0, "12"),
             named_node(1.0, 2.0, "13"),
             named_node(1.0, 1.0, "other_start"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
@@ -447,19 +462,22 @@ fn test_build_two_boundaries_with_one_hole() {
             named_node(4.0, 4.0, "2"),
             named_node(0.0, 4.0, "3"),
             named_node(0.0, 0.0, "start"),
-        ]).inner(vec![
+        ])
+        .inner(vec![
             named_node(1.0, 1.0, "other_start"),
             named_node(2.0, 1.0, "11"),
             named_node(2.0, 2.0, "12"),
             named_node(1.0, 2.0, "13"),
             named_node(1.0, 1.0, "other_start"),
-        ]).outer(vec![
+        ])
+        .outer(vec![
             named_node(4.0, 4.0, "yet_another_start"),
             named_node(8.0, 4.0, "4"),
             named_node(8.0, 8.0, "5"),
             named_node(4.0, 8.0, "6"),
             named_node(4.0, 4.0, "yet_another_start"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
@@ -484,19 +502,22 @@ fn test_build_one_boundary_with_two_holes() {
             named_node(5.0, 5.0, "2"),
             named_node(0.0, 5.0, "3"),
             named_node(0.0, 0.0, "start"),
-        ]).inner(vec![
+        ])
+        .inner(vec![
             named_node(1.0, 1.0, "other_start"),
             named_node(2.0, 1.0, "11"),
             named_node(2.0, 2.0, "12"),
             named_node(1.0, 2.0, "13"),
             named_node(1.0, 1.0, "other_start"),
-        ]).inner(vec![
+        ])
+        .inner(vec![
             named_node(3.0, 3.0, "yet_another_start"),
             named_node(4.0, 3.0, "4"),
             named_node(4.0, 4.0, "5"),
             named_node(3.0, 4.0, "6"),
             named_node(3.0, 3.0, "yet_another_start"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
@@ -522,25 +543,29 @@ fn test_build_two_boundaries_with_two_holes() {
             named_node(4.0, 4.0, "2"),
             named_node(0.0, 4.0, "3"),
             named_node(0.0, 0.0, "start"),
-        ]).inner(vec![
+        ])
+        .inner(vec![
             named_node(1.0, 1.0, "other_start"),
             named_node(2.0, 1.0, "11"),
             named_node(2.0, 2.0, "12"),
             named_node(1.0, 2.0, "13"),
             named_node(1.0, 1.0, "other_start"),
-        ]).inner(vec![
+        ])
+        .inner(vec![
             named_node(2.1, 2.1, "another_start"),
             named_node(3.1, 2.1, "4"),
             named_node(3.1, 3.1, "5"),
             named_node(2.1, 3.1, "6"),
             named_node(2.1, 2.1, "another_start"),
-        ]).outer(vec![
+        ])
+        .outer(vec![
             named_node(4.0, 4.0, "yet_another_start"),
             named_node(8.0, 4.0, "14"),
             named_node(8.0, 8.0, "15"),
             named_node(4.0, 8.0, "16"),
             named_node(4.0, 4.0, "yet_another_start"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
@@ -571,13 +596,15 @@ fn test_build_inner_touching_outer_at_one_point() {
             named_node(4.0, 4.0, "2"),
             named_node(0.0, 4.0, "3"),
             named_node(0.0, 0.0, "start"),
-        ]).inner(vec![
+        ])
+        .inner(vec![
             named_node(2.0, 2.0, "other_start"),
             named_node(1.0, 1.0, "11"),
             named_node(2.0, 0.0, "touching"),
             named_node(3.0, 1.0, "13"),
             named_node(2.0, 2.0, "other_start"),
-        ]).relation_id
+        ])
+        .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         let multipolygon = build_boundary(&relation, &builder.objects);
