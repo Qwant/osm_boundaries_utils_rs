@@ -1,7 +1,6 @@
-extern crate geo;
 extern crate osmpbfreader;
 
-use geo::{Coordinate, LineString, MultiPolygon, Point, Polygon};
+use geo_types::{Coordinate, LineString, MultiPolygon, Point, Polygon};
 use std::collections::BTreeMap;
 
 #[cfg(test)]
@@ -194,11 +193,9 @@ pub fn build_boundary_parts(
                 // our polygon is closed, we create it and add it to the multipolygon
                 let poly_geom = poly_geom
                     .iter()
-                    .map(|n| {
-                        Point(Coordinate {
-                            x: n.lon(),
-                            y: n.lat(),
-                        })
+                    .map(|n| Coordinate {
+                        x: n.lon(),
+                        y: n.lat(),
                     })
                     .collect();
                 multipoly

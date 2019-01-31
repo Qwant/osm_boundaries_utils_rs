@@ -1,5 +1,5 @@
 extern crate osmpbfreader;
-use geo::Point;
+use geo_types::Point;
 use std::collections::BTreeMap;
 
 pub fn named_node(lon: f64, lat: f64, name: &'static str) -> (Point<f64>, Option<String>) {
