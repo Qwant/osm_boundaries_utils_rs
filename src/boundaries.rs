@@ -116,7 +116,7 @@ pub fn build_boundary(
                     point with (i.e 'intersects') all 'inner' segments.
                     Using 'contains' is not suitable here, as 'inner' may touch its outer
                     ring at a single point.
-                
+
                     NB: this algorithm cannot handle "donut inside donut" boundaries
                     (where 'inner' would be contained into multiple concentric outer rings).
                 */
