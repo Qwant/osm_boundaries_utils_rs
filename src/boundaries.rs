@@ -120,9 +120,10 @@ pub fn build_boundary(
                     NB: this algorithm cannot handle "donut inside donut" boundaries
                     (where 'inner' would be contained into multiple concentric outer rings).
                 */
+                let (exterior, _) = inner.into_inner();
                 for ref mut outer in outers.0.iter_mut() {
-                    if inner.exterior.lines().all(|line| outer.intersects(&line)) {
-                        outer.interiors.push(inner.exterior);
+                    if exterior.lines().all(|line| outer.intersects(&line)) {
+                        outer.interiors_push(exterior);
                         break;
                     }
                 }
@@ -612,7 +613,7 @@ fn test_build_inner_touching_outer_at_one_point() {
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
         assert_eq!(multipolygon.area(), 14.);
-        assert_eq!(multipolygon.0[0].interiors.len(), 1);
+        assert_eq!(multipolygon.0[0].interiors().len(), 1);
     } else {
         assert!(false); //this should not happen
     }
