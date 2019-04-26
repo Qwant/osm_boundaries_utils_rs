@@ -1,6 +1,7 @@
 extern crate osmpbfreader;
 
 use geo_types::{Coordinate, LineString, MultiPolygon, Point, Polygon};
+use std::borrow::Borrow;
 use std::collections::BTreeMap;
 
 #[cfg(test)]
@@ -24,15 +25,15 @@ impl BoundaryPart {
     }
 }
 
-fn get_nodes(
+fn get_nodes<T: Borrow<osmpbfreader::OsmObj>>(
     way: &osmpbfreader::Way,
-    objects: &BTreeMap<osmpbfreader::OsmId, osmpbfreader::OsmObj>,
+    objects: &BTreeMap<osmpbfreader::OsmId, T>,
 ) -> Vec<osmpbfreader::Node> {
     way.nodes
         .iter()
         .filter_map(|node_id| objects.get(&osmpbfreader::OsmId::Node(*node_id)))
         .filter_map(|node_obj| {
-            if let osmpbfreader::OsmObj::Node(ref node) = *node_obj {
+            if let osmpbfreader::OsmObj::Node(ref node) = *node_obj.borrow() {
                 Some(node.clone())
             } else {
                 None
@@ -43,7 +44,7 @@ fn get_nodes(
 
 #[test]
 fn test_get_nodes() {
-    let mut objects = BTreeMap::new();
+    let mut objects: BTreeMap<osmpbfreader::OsmId, osmpbfreader::OsmObj> = BTreeMap::new();
     let way = osmpbfreader::Way {
         id: osmpbfreader::WayId(12),
         nodes: [12, 15, 8, 68]
@@ -97,9 +98,9 @@ fn test_get_nodes() {
     assert_eq!(nodes[3].id.0, 68);
 }
 
-pub fn build_boundary(
+pub fn build_boundary<T: Borrow<osmpbfreader::OsmObj>>(
     relation: &osmpbfreader::Relation,
-    objects: &BTreeMap<osmpbfreader::OsmId, osmpbfreader::OsmObj>,
+    objects: &BTreeMap<osmpbfreader::OsmId, T>,
 ) -> Option<MultiPolygon<f64>> {
     use geo::prelude::Intersects;
 
@@ -133,9 +134,9 @@ pub fn build_boundary(
     outer_polys
 }
 
-pub fn build_boundary_parts(
+pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
     relation: &osmpbfreader::Relation,
-    objects: &BTreeMap<osmpbfreader::OsmId, osmpbfreader::OsmObj>,
+    objects: &BTreeMap<osmpbfreader::OsmId, T>,
     roles_to_extact: Vec<&str>,
 ) -> Option<MultiPolygon<f64>> {
     let roles = roles_to_extact;
@@ -153,7 +154,7 @@ pub fn build_boundary_parts(
             }
             obj
         })
-        .filter_map(|way_obj| way_obj.way())
+        .filter_map(|way_obj| way_obj.borrow().way())
         .map(|way| get_nodes(way, objects))
         .filter(|nodes| nodes.len() > 1)
         .map(BoundaryPart::new)
@@ -237,7 +238,7 @@ pub fn build_boundary_parts(
 
 #[test]
 fn test_build_boundary_empty() {
-    let objects = BTreeMap::new();
+    let objects: BTreeMap<osmpbfreader::OsmId, osmpbfreader::OsmObj> = BTreeMap::new();
     let mut relation = osmpbfreader::Relation {
         id: osmpbfreader::RelationId(12),
         refs: vec![],
