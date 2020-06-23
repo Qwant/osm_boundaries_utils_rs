@@ -446,7 +446,7 @@ fn test_build_one_donut_boundary() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.area(), 15.);
+        assert_eq!(multipolygon.signed_area(), 15.);
     } else {
         assert!(false); //this should not happen
     }
@@ -486,7 +486,7 @@ fn test_build_two_boundaries_with_one_hole() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
-        assert_eq!(multipolygon.area(), 31.);
+        assert_eq!(multipolygon.signed_area(), 31.);
     } else {
         assert!(false); //this should not happen
     }
@@ -526,7 +526,7 @@ fn test_build_one_boundary_with_two_holes() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.area(), 23.);
+        assert_eq!(multipolygon.signed_area(), 23.);
     } else {
         assert!(false); //this should not happen
     }
@@ -574,7 +574,7 @@ fn test_build_two_boundaries_with_two_holes() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
-        assert_eq!(multipolygon.area(), 30.);
+        assert_eq!(multipolygon.signed_area(), 30.);
     } else {
         assert!(false); //this should not happen
     }
@@ -613,7 +613,7 @@ fn test_build_inner_touching_outer_at_one_point() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.area(), 14.);
+        assert_eq!(multipolygon.signed_area(), 14.);
         assert_eq!(multipolygon.0[0].interiors().len(), 1);
     } else {
         assert!(false); //this should not happen
