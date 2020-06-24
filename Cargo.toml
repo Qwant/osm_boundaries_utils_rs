@@ -11,5 +11,5 @@ readme = "README.md"
 [dependencies]
 log = "0.4"
 osmpbfreader = "0.13"
-geo-types = "^0.4.1"
-geo = "0.12"
+geo-types = "^0.6"
+geo = "0.14"
