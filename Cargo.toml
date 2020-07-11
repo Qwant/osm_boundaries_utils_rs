@@ -10,6 +10,6 @@ readme = "README.md"
 
 [dependencies]
 log = "0.4"
-osmpbfreader = "0.13"
+osmpbfreader = "0.14"
 geo-types = "^0.6"
 geo = "0.14"

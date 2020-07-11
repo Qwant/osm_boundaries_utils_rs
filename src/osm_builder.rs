@@ -3,7 +3,7 @@ use geo_types::Point;
 use std::collections::BTreeMap;
 
 pub fn named_node(lon: f64, lat: f64, name: &'static str) -> (Point<f64>, Option<String>) {
-    (Point::new(lon, lat), Some(name.to_string()))
+    (Point::new(lon, lat), Some(name.into()))
 }
 
 pub struct Relation<'a> {
@@ -21,7 +21,7 @@ impl<'a> Relation<'a> {
             .unwrap()
         {
             rel.refs.push(osmpbfreader::Ref {
-                role: "outer".to_string(),
+                role: "outer".into(),
                 member: id.into(),
             });
         }
@@ -39,7 +39,7 @@ impl<'a> Relation<'a> {
             .unwrap()
         {
             rel.refs.push(osmpbfreader::Ref {
-                role: "inner".to_string(),
+                role: "inner".into(),
                 member: id.into(),
             });
         }
