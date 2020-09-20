@@ -14,7 +14,7 @@ pub struct Relation<'a> {
 impl<'a> Relation<'a> {
     pub fn outer(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation {
         let id = self.builder.way(coords);
-        if let &mut osmpbfreader::OsmObj::Relation(ref mut rel) = self
+        if let osmpbfreader::OsmObj::Relation(ref mut rel) = self
             .builder
             .objects
             .get_mut(&self.relation_id.into())
@@ -32,7 +32,7 @@ impl<'a> Relation<'a> {
 impl<'a> Relation<'a> {
     pub fn inner(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation {
         let id = self.builder.way(coords);
-        if let &mut osmpbfreader::OsmObj::Relation(ref mut rel) = self
+        if let osmpbfreader::OsmObj::Relation(ref mut rel) = self
             .builder
             .objects
             .get_mut(&self.relation_id.into())

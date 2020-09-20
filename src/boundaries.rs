@@ -5,9 +5,9 @@ use std::borrow::Borrow;
 use std::collections::BTreeMap;
 
 #[cfg(test)]
-use osm_builder;
+use crate::osm_builder;
 #[cfg(test)]
-use osm_builder::named_node;
+use crate::osm_builder::named_node;
 
 struct BoundaryPart {
     nodes: Vec<osmpbfreader::Node>,
@@ -15,7 +15,7 @@ struct BoundaryPart {
 
 impl BoundaryPart {
     pub fn new(nodes: Vec<osmpbfreader::Node>) -> BoundaryPart {
-        BoundaryPart { nodes: nodes }
+        BoundaryPart { nodes }
     }
     pub fn first(&self) -> osmpbfreader::NodeId {
         self.nodes.first().unwrap().id
@@ -163,47 +163,68 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
     // we want to try to build a polygon for a least each way
     while !boundary_parts.is_empty() {
         let first_part = boundary_parts.remove(0);
-        let first = first_part.first();
+        let mut added_nodes: Vec<osmpbfreader::Node> = vec![];
+        let mut node_to_idx: BTreeMap<osmpbfreader::NodeId, usize> = BTreeMap::new();
+
+        let mut append_ring = |nodes: &[osmpbfreader::Node]| {
+            let poly_geom = nodes
+                .iter()
+                .map(|n| Coordinate {
+                    x: n.lon(),
+                    y: n.lat(),
+                })
+                .collect();
+            multipoly
+                .0
+                .push(Polygon::new(LineString(poly_geom), vec![]));
+        };
+
+        let mut add_part = |mut part: BoundaryPart| {
+            let nodes = if added_nodes.is_empty() {
+                part.nodes.drain(..)
+            } else {
+                part.nodes.drain(1..)
+            };
+
+            for n in nodes {
+                if let Some(start_idx) = node_to_idx.get(&n.id) {
+                    let ring = added_nodes.split_off(*start_idx);
+                    node_to_idx = added_nodes
+                        .iter()
+                        .enumerate()
+                        .map(|(i, n)| (n.id, i))
+                        .collect();
+                    append_ring(&ring);
+                }
+                node_to_idx.insert(n.id, added_nodes.len());
+                added_nodes.push(n);
+            }
+        };
+
         let mut current = first_part.last();
-        let mut poly_geom = first_part.nodes;
+        add_part(first_part);
 
         loop {
             let mut added_part = false;
             let mut i = 0;
-            while i < boundary_parts.len() && current != first {
+            while i < boundary_parts.len() {
                 if current == boundary_parts[i].first() {
-                    // the start of current way touch the polygon, we add it and remove it from the
-                    // pool
+                    // the start of current way touches the polygon,
+                    // we add it and remove it from the pool
                     current = boundary_parts[i].last();
-                    poly_geom.append(&mut boundary_parts[i].nodes);
-                    boundary_parts.remove(i);
+                    add_part(boundary_parts.remove(i));
                     added_part = true;
                 } else if current == boundary_parts[i].last() {
-                    // the end of the current way touch the polygon, we reverse the way and add it
+                    // the end of the current way touches the polygon, we reverse the way and add it
                     current = boundary_parts[i].first();
                     boundary_parts[i].nodes.reverse();
-                    poly_geom.append(&mut boundary_parts[i].nodes);
-                    boundary_parts.remove(i);
+                    add_part(boundary_parts.remove(i));
                     added_part = true;
                 } else {
                     i += 1;
                     // didn't do anything, we want to explore the next way, if we had do something we
                     // will have removed the current way and there will be no need to increment
                 }
-            }
-            if current == first {
-                // our polygon is closed, we create it and add it to the multipolygon
-                let poly_geom = poly_geom
-                    .iter()
-                    .map(|n| Coordinate {
-                        x: n.lon(),
-                        y: n.lat(),
-                    })
-                    .collect();
-                multipoly
-                    .0
-                    .push(Polygon::new(LineString(poly_geom), vec![]));
-                break;
             }
             if !added_part {
                 use geo::haversine_distance::HaversineDistance;
@@ -213,17 +234,20 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
                         y: n.lat(),
                     })
                 };
-                let distance =
-                    p(poly_geom.first().unwrap()).haversine_distance(&p(poly_geom.last().unwrap()));
-                if distance < 10. {
-                    warn!(
-                        "boundary: relation/{} ({}): unclosed polygon, dist({:?}, {:?}) = {}",
-                        relation.id.0,
-                        relation.tags.get("name").map_or("", |s| &s),
-                        poly_geom.first().unwrap().id,
-                        poly_geom.last().unwrap().id,
-                        distance
-                    );
+
+                if added_nodes.len() > 1 {
+                    let distance = p(added_nodes.first().unwrap())
+                        .haversine_distance(&p(added_nodes.last().unwrap()));
+                    if distance < 10. {
+                        warn!(
+                            "boundary: relation/{} ({}): unclosed polygon, dist({:?}, {:?}) = {}",
+                            relation.id.0,
+                            relation.tags.get("name").map_or("", |s| &s),
+                            added_nodes.first().unwrap().id,
+                            added_nodes.last().unwrap().id,
+                            distance
+                        );
+                    }
                 }
                 break;
             }
@@ -615,6 +639,47 @@ fn test_build_inner_touching_outer_at_one_point() {
         assert_eq!(multipolygon.0.len(), 1);
         assert_eq!(multipolygon.signed_area(), 14.);
         assert_eq!(multipolygon.0[0].interiors().len(), 1);
+    } else {
+        assert!(false); //this should not happen
+    }
+}
+
+#[test]
+fn test_build_two_touching_rings() {
+    use geo::algorithm::area::Area;
+    let mut builder = osm_builder::OsmBuilder::new();
+
+    let rel_id = builder
+        .relation()
+        .outer(vec![
+            named_node(-1.0, -1.0, "A"),
+            named_node(1.0, -1.0, "B"),
+        ])
+        .outer(vec![
+            named_node(0.0, 0.0, "touching"),
+            named_node(-1.0, -1.0, "A"),
+        ])
+        .outer(vec![
+            named_node(1.0, -1.0, "B"),
+            named_node(0.0, 0.0, "touching"),
+        ])
+        .outer(vec![named_node(1.0, 1.0, "C"), named_node(-1.0, 1.0, "D")])
+        .outer(vec![
+            named_node(-1.0, 1.0, "D"),
+            named_node(0.0, 0.0, "touching"),
+        ])
+        .outer(vec![
+            named_node(0.0, 0.0, "touching"),
+            named_node(1.0, 1.0, "C"),
+        ])
+        .relation_id
+        .into();
+    if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
+        let multipolygon = build_boundary(&relation, &builder.objects);
+        assert!(multipolygon.is_some());
+        let multipolygon = multipolygon.unwrap();
+        assert_eq!(multipolygon.0.len(), 2);
+        assert_eq!(multipolygon.unsigned_area(), 2.);
     } else {
         assert!(false); //this should not happen
     }
