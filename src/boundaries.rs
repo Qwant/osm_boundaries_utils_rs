@@ -110,7 +110,7 @@ pub fn build_boundary<T: Borrow<osmpbfreader::OsmObj>>(
     let inner_polys = build_boundary_parts(relation, objects, vec!["inner"]);
 
     if let Some(ref mut outers) = outer_polys {
-        inner_polys.map(|inners| {
+        if let Some(inners) = inner_polys {
             inners.into_iter().for_each(|inner| {
                 /*
                     It's assumed here that the 'inner' ring is contained into
@@ -131,7 +131,7 @@ pub fn build_boundary<T: Borrow<osmpbfreader::OsmObj>>(
                     }
                 }
             })
-        });
+        }
     }
     outer_polys
 }
@@ -301,7 +301,7 @@ fn test_build_boundary_not_closed() {
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         assert!(build_boundary(&relation, &builder.objects).is_none());
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -327,7 +327,7 @@ fn test_build_boundary_closed() {
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -353,7 +353,7 @@ fn test_build_boundary_closed_reverse() {
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -376,7 +376,7 @@ fn test_build_one_boundary_closed() {
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -409,10 +409,10 @@ fn test_build_two_opposite_clockwise_boundaries() {
         assert_eq!(multipolygon.0.len(), 2);
         let centroid = multipolygon.centroid();
         let centroid = centroid.unwrap();
-        assert_eq!(centroid.lng(), 0.0);
-        assert_eq!(centroid.lat(), 0.0);
+        assert!(centroid.lng().abs() < f64::EPSILON);
+        assert!(centroid.lat().abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -441,7 +441,7 @@ fn test_build_two_boundaries_closed() {
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -472,9 +472,9 @@ fn test_build_one_donut_boundary() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.signed_area(), 15.);
+        assert!((multipolygon.signed_area() - 15.).abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -512,9 +512,9 @@ fn test_build_two_boundaries_with_one_hole() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
-        assert_eq!(multipolygon.signed_area(), 31.);
+        assert!((multipolygon.signed_area() - 31.).abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -552,9 +552,9 @@ fn test_build_one_boundary_with_two_holes() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.signed_area(), 23.);
+        assert!((multipolygon.signed_area() - 23.).abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -600,9 +600,9 @@ fn test_build_two_boundaries_with_two_holes() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
-        assert_eq!(multipolygon.signed_area(), 30.);
+        assert!((multipolygon.signed_area() - 30.) < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -639,10 +639,10 @@ fn test_build_inner_touching_outer_at_one_point() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.signed_area(), 14.);
         assert_eq!(multipolygon.0[0].interiors().len(), 1);
+        assert!((multipolygon.signed_area() - 14.) < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 

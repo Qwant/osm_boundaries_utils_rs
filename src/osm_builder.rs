@@ -55,9 +55,9 @@ pub struct OsmBuilder {
     named_nodes: BTreeMap<String, osmpbfreader::NodeId>,
 }
 
-impl OsmBuilder {
-    pub fn new() -> OsmBuilder {
-        OsmBuilder {
+impl Default for OsmBuilder {
+    fn default() -> Self {
+        Self {
             node_id: 0,
             way_id: 0,
             relation_id: 0,
@@ -65,11 +65,17 @@ impl OsmBuilder {
             named_nodes: BTreeMap::new(),
         }
     }
+}
+
+impl OsmBuilder {
+    pub fn new() -> OsmBuilder {
+        Self::default()
+    }
 
     pub fn relation(&mut self) -> Relation {
         let id = osmpbfreader::RelationId(self.relation_id);
         let r = osmpbfreader::Relation {
-            id: id,
+            id,
             refs: vec![],
             tags: osmpbfreader::Tags::new(),
         };
@@ -88,8 +94,8 @@ impl OsmBuilder {
             .collect::<Vec<_>>();
         let id = osmpbfreader::WayId(self.way_id);
         let w = osmpbfreader::Way {
-            id: id,
-            nodes: nodes,
+            id,
+            nodes,
             tags: osmpbfreader::Tags::new(),
         };
         self.way_id += 1;
@@ -103,7 +109,7 @@ impl OsmBuilder {
         }
         let id = osmpbfreader::NodeId(self.node_id);
         let n = osmpbfreader::Node {
-            id: id,
+            id,
             decimicro_lat: (coord.lat() * 1e7) as i32,
             decimicro_lon: (coord.lng() * 1e7) as i32,
             tags: osmpbfreader::Tags::new(),
