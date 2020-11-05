@@ -11,21 +11,41 @@ use crate::osm_builder::named_node;
 
 const WARN_UNCLOSED_RING_MAX_DISTANCE: f64 = 10.;
 
-struct BoundaryPart {
-    nodes: Vec<osmpbfreader::Node>,
+// Define BoundaryPart in a mod to make its fields private
+mod boundary_part {
+    /// Wrapper arround a Vec<osmpbfreader::Node> that has length at least 2.
+    pub struct BoundaryPart {
+        nodes: Vec<osmpbfreader::Node>,
+    }
+
+    impl BoundaryPart {
+        pub fn new(nodes: Vec<osmpbfreader::Node>) -> Option<Self> {
+            if nodes.len() >= 2 {
+                Some(Self { nodes })
+            } else {
+                None
+            }
+        }
+
+        pub fn first(&self) -> osmpbfreader::NodeId {
+            self.nodes.first().unwrap().id
+        }
+
+        pub fn last(&self) -> osmpbfreader::NodeId {
+            self.nodes.last().unwrap().id
+        }
+
+        pub fn reverse(&mut self) {
+            self.nodes.reverse();
+        }
+
+        pub fn into_vec(self) -> Vec<osmpbfreader::Node> {
+            self.nodes
+        }
+    }
 }
 
-impl BoundaryPart {
-    pub fn new(nodes: Vec<osmpbfreader::Node>) -> BoundaryPart {
-        BoundaryPart { nodes }
-    }
-    pub fn first(&self) -> osmpbfreader::NodeId {
-        self.nodes.first().unwrap().id
-    }
-    pub fn last(&self) -> osmpbfreader::NodeId {
-        self.nodes.last().unwrap().id
-    }
-}
+use self::boundary_part::BoundaryPart;
 
 fn get_nodes<T: Borrow<osmpbfreader::OsmObj>>(
     way: &osmpbfreader::Way,
@@ -110,7 +130,7 @@ pub fn build_boundary<T: Borrow<osmpbfreader::OsmObj>>(
     let inner_polys = build_boundary_parts(relation, objects, vec!["inner"]);
 
     if let Some(ref mut outers) = outer_polys {
-        inner_polys.map(|inners| {
+        if let Some(inners) = inner_polys {
             inners.into_iter().for_each(|inner| {
                 /*
                     It's assumed here that the 'inner' ring is contained into
@@ -131,7 +151,7 @@ pub fn build_boundary<T: Borrow<osmpbfreader::OsmObj>>(
                     }
                 }
             })
-        });
+        }
     }
     outer_polys
 }
@@ -158,8 +178,7 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
         })
         .filter_map(|way_obj| way_obj.borrow().way())
         .map(|way| get_nodes(way, objects))
-        .filter(|nodes| nodes.len() > 1)
-        .map(BoundaryPart::new)
+        .filter_map(BoundaryPart::new)
         .collect();
     let mut multipoly = MultiPolygon(vec![]);
 
@@ -181,11 +200,13 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
         let mut added_nodes: Vec<osmpbfreader::Node> = vec![];
         let mut node_to_idx: BTreeMap<osmpbfreader::NodeId, usize> = BTreeMap::new();
 
-        let mut add_part = |mut part: BoundaryPart| {
+        let mut add_part = |part: BoundaryPart| {
+            let mut part = part.into_vec();
+
             let nodes = if added_nodes.is_empty() {
-                part.nodes.drain(..)
+                part.drain(..)
             } else {
-                part.nodes.drain(1..)
+                part.drain(1..)
             };
 
             for n in nodes {
@@ -219,7 +240,7 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
                 } else if current == boundary_parts[i].last() {
                     // the end of the current way touches the polygon, we reverse the way and add it
                     current = boundary_parts[i].first();
-                    boundary_parts[i].nodes.reverse();
+                    boundary_parts[i].reverse();
                     add_part(boundary_parts.remove(i));
                     added_part = true;
                 } else {
@@ -301,7 +322,7 @@ fn test_build_boundary_not_closed() {
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
         assert!(build_boundary(&relation, &builder.objects).is_none());
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -327,7 +348,7 @@ fn test_build_boundary_closed() {
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -353,7 +374,7 @@ fn test_build_boundary_closed_reverse() {
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -376,7 +397,7 @@ fn test_build_one_boundary_closed() {
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -409,10 +430,10 @@ fn test_build_two_opposite_clockwise_boundaries() {
         assert_eq!(multipolygon.0.len(), 2);
         let centroid = multipolygon.centroid();
         let centroid = centroid.unwrap();
-        assert_eq!(centroid.lng(), 0.0);
-        assert_eq!(centroid.lat(), 0.0);
+        assert!(centroid.lng().abs() < f64::EPSILON);
+        assert!(centroid.lat().abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -441,7 +462,7 @@ fn test_build_two_boundaries_closed() {
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -472,9 +493,9 @@ fn test_build_one_donut_boundary() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.signed_area(), 15.);
+        assert!((multipolygon.signed_area() - 15.).abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -512,9 +533,9 @@ fn test_build_two_boundaries_with_one_hole() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
-        assert_eq!(multipolygon.signed_area(), 31.);
+        assert!((multipolygon.signed_area() - 31.).abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -552,9 +573,9 @@ fn test_build_one_boundary_with_two_holes() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.signed_area(), 23.);
+        assert!((multipolygon.signed_area() - 23.).abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -600,9 +621,9 @@ fn test_build_two_boundaries_with_two_holes() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
-        assert_eq!(multipolygon.signed_area(), 30.);
+        assert!((multipolygon.signed_area() - 30.).abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -639,10 +660,10 @@ fn test_build_inner_touching_outer_at_one_point() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
-        assert_eq!(multipolygon.signed_area(), 14.);
         assert_eq!(multipolygon.0[0].interiors().len(), 1);
+        assert!((multipolygon.signed_area() - 14.).abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
 
@@ -681,8 +702,8 @@ fn test_build_two_touching_rings() {
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
-        assert_eq!(multipolygon.unsigned_area(), 2.);
+        assert!((multipolygon.unsigned_area() - 2.).abs() < f64::EPSILON);
     } else {
-        assert!(false); //this should not happen
+        unreachable!()
     }
 }
