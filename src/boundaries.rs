@@ -9,6 +9,8 @@ use crate::osm_builder;
 #[cfg(test)]
 use crate::osm_builder::named_node;
 
+const WARN_UNCLOSED_RING_MAX_DISTANCE: f64 = 10.;
+
 struct BoundaryPart {
     nodes: Vec<osmpbfreader::Node>,
 }
@@ -160,24 +162,24 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
         .map(BoundaryPart::new)
         .collect();
     let mut multipoly = MultiPolygon(vec![]);
-    // we want to try to build a polygon for a least each way
+
+    let mut append_ring = |nodes: &[osmpbfreader::Node]| {
+        let poly_geom = nodes
+            .iter()
+            .map(|n| Coordinate {
+                x: n.lon(),
+                y: n.lat(),
+            })
+            .collect();
+        multipoly
+            .0
+            .push(Polygon::new(LineString(poly_geom), vec![]));
+    };
+
     while !boundary_parts.is_empty() {
         let first_part = boundary_parts.remove(0);
         let mut added_nodes: Vec<osmpbfreader::Node> = vec![];
         let mut node_to_idx: BTreeMap<osmpbfreader::NodeId, usize> = BTreeMap::new();
-
-        let mut append_ring = |nodes: &[osmpbfreader::Node]| {
-            let poly_geom = nodes
-                .iter()
-                .map(|n| Coordinate {
-                    x: n.lon(),
-                    y: n.lat(),
-                })
-                .collect();
-            multipoly
-                .0
-                .push(Polygon::new(LineString(poly_geom), vec![]));
-        };
 
         let mut add_part = |mut part: BoundaryPart| {
             let nodes = if added_nodes.is_empty() {
@@ -238,7 +240,7 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
                 if added_nodes.len() > 1 {
                     let distance = p(added_nodes.first().unwrap())
                         .haversine_distance(&p(added_nodes.last().unwrap()));
-                    if distance < 10. {
+                    if distance < WARN_UNCLOSED_RING_MAX_DISTANCE {
                         warn!(
                             "boundary: relation/{} ({}): unclosed polygon, dist({:?}, {:?}) = {}",
                             relation.id.0,
