@@ -217,7 +217,14 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
                         .enumerate()
                         .map(|(i, n)| (n.id, i))
                         .collect();
-                    append_ring(&ring);
+                    if ring.len() >= 3 {
+                        append_ring(&ring);
+                    } else {
+                        debug!(
+                            "Ignored ring with less than 3 nodes in relation:{} at node:{}",
+                            relation.id.0, n.id.0
+                        );
+                    }
                 }
                 node_to_idx.insert(n.id, added_nodes.len());
                 added_nodes.push(n);
