@@ -47,24 +47,13 @@ impl<'a> Relation<'a> {
     }
 }
 
+#[derive(Default)]
 pub struct OsmBuilder {
     node_id: i64,
     way_id: i64,
     relation_id: i64,
     pub objects: BTreeMap<osmpbfreader::OsmId, osmpbfreader::OsmObj>,
     named_nodes: BTreeMap<String, osmpbfreader::NodeId>,
-}
-
-impl Default for OsmBuilder {
-    fn default() -> Self {
-        Self {
-            node_id: 0,
-            way_id: 0,
-            relation_id: 0,
-            objects: BTreeMap::new(),
-            named_nodes: BTreeMap::new(),
-        }
-    }
 }
 
 impl OsmBuilder {
