@@ -1,8 +1,9 @@
 extern crate osmpbfreader;
 
-use geo_types::{Coordinate, LineString, MultiPolygon, Point, Polygon};
+use geo_types::{Coord, LineString, MultiPolygon, Point, Polygon};
 use std::borrow::Borrow;
 use std::collections::BTreeMap;
+use log::{debug, warn};
 
 #[cfg(test)]
 use crate::osm_builder;
@@ -185,7 +186,7 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
     let mut append_ring = |nodes: &[osmpbfreader::Node]| {
         let poly_geom = nodes
             .iter()
-            .map(|n| Coordinate {
+            .map(|n| Coord {
                 x: n.lon(),
                 y: n.lat(),
             })
@@ -259,7 +260,7 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
             if !added_part {
                 use geo::haversine_distance::HaversineDistance;
                 let p = |n: &osmpbfreader::Node| {
-                    Point(Coordinate {
+                    Point(Coord {
                         x: n.lon(),
                         y: n.lat(),
                     })
