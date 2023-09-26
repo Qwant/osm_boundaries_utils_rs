@@ -1,9 +1,9 @@
 extern crate osmpbfreader;
 
 use geo_types::{Coord, LineString, MultiPolygon, Point, Polygon};
+use log::{debug, warn};
 use std::borrow::Borrow;
 use std::collections::BTreeMap;
-use log::{debug, warn};
 
 #[cfg(test)]
 use crate::osm_builder;
@@ -273,7 +273,7 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
                         warn!(
                             "boundary: relation/{} ({}): unclosed polygon, dist({:?}, {:?}) = {}",
                             relation.id.0,
-                            relation.tags.get("name").map_or("", |s| &s),
+                            relation.tags.get("name").map_or("", |s| s),
                             added_nodes.first().unwrap().id,
                             added_nodes.last().unwrap().id,
                             distance
